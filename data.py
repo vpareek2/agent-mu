@@ -1,14 +1,18 @@
+# Data Loading and Preprocessing
+# 2024 - Veer Pareek
+
 import torch
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-import time
-from typing import List, Dict, Optional
-import yfinance as yf
-from datetime import datetime, timedelta
 import praw
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import requests
+import time
+import yfinance as yf
+
+from datetime import datetime, timedelta
+from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from typing import List, Dict, Optional
 
 from config import MarketFeatures, FeatureConfig
 
@@ -45,9 +49,8 @@ def fetch_reddit_data(date: datetime, symbol: str, reddit_client: praw.Reddit, s
 # ---------------------------------------------------------------------------
 
 def calculate_calendar_features(dates: pd.DatetimeIndex) -> Dict[str, torch.Tensor]:
-    days = dates.dayofweek.values + 1
-    months = dates.month.values
-
+    days = dates.to_series().dt.dayofweek.values + 1
+    months = dates.to_series().dt.month.values
     return {
         'day'   :   torch.tensor(days, dtype=torch.float32).unsqueeze(-1),
         'month' :   torch.tensor(months, dtype=torch.float32).unsqueeze(-1)
@@ -74,10 +77,9 @@ def calculate_returns(df: pd.DataFrame, use_log: bool = True) -> torch.Tensor:
 def calculate_sma(df: pd.DataFrame, periods: List[int]) -> torch.Tensor:
     sma_features = []
     for period in periods:
-        sma = df['Close'].rolling(window=period).mean().fillna(0).values
+        sma = df['Close'].rolling(window=period).mean().fillna(0).values # type: ignore
         sma_features.append(torch.tensor(sma))
     sma_tensor = torch.stack(sma_features, dim=1)
-
     return sma_tensor.float()
 
 def calculate_ema(df: pd.DataFrame, periods: List[int]) -> torch.Tensor:
@@ -85,20 +87,17 @@ def calculate_ema(df: pd.DataFrame, periods: List[int]) -> torch.Tensor:
     for period in periods:
         ema = df['Close'].ewm(span=period, adjust=False).mean().values
         ema_features.append(torch.tensor(ema, dtype=torch.float32))
-
     return torch.stack(ema_features, dim=1)
 
 def calculate_rsi(df: pd.DataFrame, period: int = 14) -> torch.Tensor:
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rsi = (100 - (100 / (1 + gain / loss))).fillna(50).values
-
+    rsi = (100 - (100 / (1 + gain / loss))).fillna(50).values # type: ignore
     return torch.tensor(rsi, dtype=torch.float32).unsqueeze(-1)
 
 def calculate_macd(df: pd.DataFrame) -> torch.Tensor:
     macd = (df['Close'].ewm(span=12, adjust=False).mean() - df['Close'].ewm(span=26, adjust=False).mean()).values
-
     return torch.tensor(macd, dtype=torch.float32).unsqueeze(-1)
 
 # ---------------------------------------------------------------------------
@@ -114,11 +113,9 @@ def calculate_daily_sentiment(reddit_posts: List[str], news_articles: List[str],
         outputs = model(**inputs)
         probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
         return (probs[0][2] - probs[0][0]).item()
-
     reddit_score = get_sentiment(reddit_posts)
     news_score = get_sentiment(news_articles)
     combined_score = reddit_weight * reddit_score + (1 - reddit_weight) * news_score
-
     return {
         'reddit': reddit_score,
         'news': news_score,
@@ -129,12 +126,10 @@ def calculate_sentiment_features(dates: pd.DatetimeIndex, symbol: str, reddit_cr
     tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
     model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
     reddit_client = praw.Reddit(client_id=reddit_credentials['client_id'], client_secret=reddit_credentials['client_secret'], user_agent=reddit_credentials['user_agent'])
-
     seq_len = len(dates)
     reddit_sentiment = np.zeros(seq_len)
     news_sentiment = np.zeros(seq_len)
     combined_sentiment = np.zeros(seq_len)
-
     for i, date in enumerate(tqdm(dates, desc="Calculating sentiment")):
         reddit_posts = fetch_reddit_data(date, symbol, reddit_client)
         news_articles = fetch_news_data(date, symbol, newsapi_key)
@@ -143,7 +138,6 @@ def calculate_sentiment_features(dates: pd.DatetimeIndex, symbol: str, reddit_cr
         news_sentiment[i] = daily_sentiment['news']
         combined_sentiment[i] = daily_sentiment['combined']
         time.sleep(1)
-
     return {
         'reddit': torch.tensor(reddit_sentiment, dtype=torch.float32).unsqueeze(-1),
         'news': torch.tensor(news_sentiment, dtype=torch.float32).unsqueeze(-1),
@@ -157,19 +151,16 @@ def calculate_sentiment_features(dates: pd.DatetimeIndex, symbol: str, reddit_cr
 def pipeline(symbol: str, start_date: str, end_date: Optional[str] = None, config: Optional[FeatureConfig] = None, reddit_credentials: Optional[Dict[str, str]] = None, newsapi_key: Optional[str] = None) -> MarketFeatures:
     config = FeatureConfig() if config is None
     df = yf.Ticker(symbol).history(start=start_date, end=end_date or datetime.now().strftime('%Y-%m-%d'), interval="1d")
-
     ohlcv = calculate_ohlcv(df)
     returns = calculate_returns(df, config.use_log_returns)
     sma = calculate_sma(df, config.sma_periods)
     ema = calculate_ema(df, config.ema_periods)
     rsi = calculate_rsi(df, config.rsi_period)
     macd = calculate_macd(df)
-    calendar = calculate_calendar_features(df.index)
-
+    calendar = calculate_calendar_features(df.index) # type: ignore
     if reddit_credentials and newsapi_key:
-        sentiment = calculate_sentiment_features(df.index, symbol, reddit_credentials, newsapi_key, config.reddit_weight)
+        sentiment = calculate_sentiment_features(df.index, symbol, reddit_credentials, newsapi_key, config.reddit_weight) # type: ignore
     else:
         seq_len = len(df)
         sentiment = { 'reddit': torch.zeros(seq_len, 1), 'news': torch.zeros(seq_len, 1), 'combined': torch.zeros(seq_len, 1) }
-
     return MarketFeatures(ohlvc=ohlcv, returns=returns, sma=sma, ema=ema, rsi=rsi, macd=macd, reddit_sentiment=sentiment['reddit'], news_sentiment=sentiment['news'], combined_sentiment=sentiment['combined'], day=calendar['day'], month=calendar['month'])

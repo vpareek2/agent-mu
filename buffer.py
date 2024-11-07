@@ -1,7 +1,11 @@
-import torch
+# Replay Buffer
+# 2024 - Veer Pareek
+
 import numpy as np
-from typing import List, Tuple, Optional
+import torch
+
 from collections import deque
+from typing import List, Tuple, Optional
 
 from config import GameHistory, ReplayBufferConfig, Action
 
@@ -20,25 +24,21 @@ class ReplayBuffer:
     def sample_batch(self, batch_size: int) -> Tuple[List[GameHistory], Optional[torch.Tensor], Optional[List[int]]]:
         if len(self.buffer) < batch_size:
             raise ValueError(f"Not enough games in buffer ({len(self.buffer)} < {batch_size})")
-
         if not self.config.prioritized:
             indices = np.random.choice(len(self.buffer), batch_size).tolist()
             games = [self.buffer[idx] for idx in indices]
             return games, None, None
-
         probs = np.array(self.priorities) ** self.config.alpha
         probs = probs / probs.sum()
         indices = np.random.choice(len(self.buffer), batch_size, p=probs).tolist()
         games = [self.buffer[idx] for idx in indices]
         weights = (len(self.buffer) * probs[indices]) ** (-self.config.beta)
         weights = weights / weights.max()
-
         return games, torch.FloatTensor(weights), indices
 
     def update_priorities(self, indices: List[int], priorities: List[float]) -> None:
         if not self.config.prioritized or not self.priorities:
             return
-
         for idx, priority in zip(indices, priorities):
             self.priorities[idx] = priority
 

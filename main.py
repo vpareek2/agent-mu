@@ -1,12 +1,16 @@
+# Main file for project usage
+# 2024 - Veer Pareek
+
 import logging
 import os
 import pickle
 import torch
+
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from config import (FeatureConfig, ModelParams, MuZeroConfig, MCTSConfig, EnvironmentConfig, ReplayBufferConfig, TrainingConfig, DynamicsWeights, PredictionWeights, LayerWeights, MuZeroWeights, TransformerWeights)
+from config import FeatureConfig, ModelParams, MuZeroConfig, MCTSConfig, EnvironmentConfig, ReplayBufferConfig, TrainingConfig, DynamicsWeights, PredictionWeights, LayerWeights, MuZeroWeights, TransformerWeights, MarketFeatures
 from data import pipeline
 from environment import Environment
 from train import train
@@ -62,7 +66,7 @@ def init_weights(model_params: ModelParams, muzero_config: MuZeroConfig, device:
             prediction=prediction_weights
         )
 
-    return muzero_weights, encoder_weights
+    return muzero_weights, encoder_weights  # type: ignore
 
 def load_features(feature_config: FeatureConfig, cache_file: str = "features_cache.pkl") -> MarketFeatures:
     if os.path.exists(cache_file):
@@ -99,9 +103,7 @@ def main():
         'user_agent': os.getenv('REDDIT_USER_AGENT')
     }
     newsapi_key = os.getenv('NEWSAPI_KEY')
-
     features = load_features(feature_config)
-
     env = Environment(features, env_config)
     logging.info("Environment initialized")
 
@@ -110,6 +112,7 @@ def main():
 
     freqs_cis_cache = freqs_cis(model_params.head_dim, model_params.n_layers, device=device)
     logging.info("Starting training...")
+
     try:
         train(env=env, muzero_weights=muzero_weights, encoder_weights=encoder_weights, model_params=model_params, muzero_config=muzero_config, mcts_config=mcts_config, train_config=training_config)
         logging.info("Training completed successfully")

@@ -1,11 +1,15 @@
+# Training file
+# 2024 - Veer Pareek
+
 import logging
 import os
 import json
 import torch
-from typing import Dict, List, Tuple, Optional
-from tqdm import tqdm
-from pathlib import Path
+
 from datetime import datetime
+from pathlib import Path
+from tqdm import tqdm
+from typing import Dict, List, Tuple, Optional
 
 from buffer import ReplayBuffer, ReplayBufferConfig
 from config import MuZeroConfig, ModelParams, MuZeroWeights, TransformerWeights, GameHistory, TradingState, Action, MCTSConfig, TrainingConfig
@@ -30,11 +34,12 @@ def create_optimizers(muzero_weights: MuZeroWeights, encoder_weights: Transforme
     muzero_optimizer = torch.optim.Adam(muzero_params, lr=config.learning_rate, weight_decay=config.weight_decay)
     encoder_optimizer = torch.optim.Adam(encoder_params, lr=config.learning_rate, weight_decay=config.weight_decay)
 
+    # Alternate optimizers for experimentation with Shampoo and Soap
     # muzero_optimizer = torch.optim.DistributedShampoo(muzero_params, lr=config.learning_rate, betas=(0.9, 0.999), epsilon=1e-12, weight_decay=config.weight_decay, max_preconditioner_dim=8192, precondition_frequency=100, use_decoupled_weight_decay=False, grafting_config=AdamGraftingConfig(beta2=0.999, epsilon=1e-08,),)
     # encoder_optimizer = torch.optim.DistributedShampoo(encoder_params, lr=config.learning_rate, betas=(0.9, 0.999), epsilon=1e-12, weight_decay=config.weight_decay, max_preconditioner_dim=8192, precondition_frequency=100, use_decoupled_weight_decay=False, grafting_config=AdamGraftingConfig(beta2=0.999, epsilon=1e-08,),)
     # muzero_optimizer = SOAP(muzero_params, lr=config.learning_rate, weight_decay=config.weight_decay)
     # encoder_optimizer = SOAP(encoder_params, lr=config.learning_rate, weight_decay=config.weight_decay)
-    #
+
     return muzero_optimizer, encoder_optimizer
 
 def compute_losses(states: torch.Tensor, actions: torch.Tensor, target_values: torch.Tensor, target_rewards: torch.Tensor, target_policies: torch.Tensor, predicted_states: torch.Tensor, predicted_values: torch.Tensor, predicted_rewards: torch.Tensor, predicted_policies: torch.Tensor, config: TrainingConfig) -> Dict[str, torch.Tensor]:
@@ -101,19 +106,12 @@ def self_play_game(env: Environment, muzero_weights: MuZeroWeights, encoder_weig
 def train(env: Environment, muzero_weights: MuZeroWeights, encoder_weights: TransformerWeights, model_params: ModelParams, muzero_config: MuZeroConfig, mcts_config: MCTSConfig, train_config: TrainingConfig) -> None:
     logger = logging.getLogger(__name__)
 
-    # Initialize replay buffer
-    replay_buffer = ReplayBuffer(config=ReplayBufferConfig(
-        capacity=10000,
-        prioritized=True,
-        alpha=0.6,
-        beta=0.4
-    ))
+    replay_buffer = ReplayBuffer(config=ReplayBufferConfig(capacity=10000, prioritized=True, alpha=0.6, beta=0.4))
 
     muzero_opt, encoder_opt = create_optimizers(muzero_weights, encoder_weights, train_config)
     device = next(iter(muzero_weights.dynamics.__dict__.values())).device
     freqs_cis_cache = freqs_cis(model_params.head_dim, model_params.n_layers, device=device)
 
-    # Track best metrics for model saving
     best_portfolio_value = float('-inf')
 
     for step in tqdm(range(train_config.num_training_steps)):

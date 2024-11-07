@@ -1,5 +1,9 @@
+# Market Environment
+# 2024 - Veer Pareek
+
 import pandas as pd
 import torch
+
 from typing import List, Optional, Tuple
 
 from config import Position, Action, TradingState, EnvironmentConfig, MarketFeatures
@@ -31,7 +35,6 @@ class Environment:
             self.market_features.day[start_idx:end_idx],
             self.market_features.month[start_idx:end_idx]
         ]
-
         return torch.cat(features, dim=-1)
 
     def _get_current_price(self) -> float:
@@ -52,7 +55,6 @@ class Environment:
 
     def get_valid_actions(self) -> List[Action]:
         valid_actions = [Action.HOLD]
-
         if self.position is None:
             valid_actions.extend([Action.LONG, Action.SHORT])
         elif self.position.size > 0:
@@ -64,7 +66,6 @@ class Environment:
 
     def calculate_reward(self, old_state: TradingState, action: Action, new_state: TradingState) -> float:
         reward = new_state.portfolio_value - old_state.portfolio_value
-
         if self.position is not None:
             reward -= abs(self.position.size) * self.config.transaction_cost
 
@@ -86,7 +87,7 @@ class Environment:
                 position_size = -position_size
 
             transaction_cost = abs(position_size * current_price * self.config.transaction_cost)
-            self.position = Position(size=position_size, entry_price=current_price, entry_time=self.timestamp)
+            self.position = Position(size=position_size, entry_price=current_price, entry_time=self.timestamp, pnl=0.0)
 
         return self.position, transaction_cost
 

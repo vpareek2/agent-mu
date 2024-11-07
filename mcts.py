@@ -1,3 +1,6 @@
+# Monte Carlo Tree Search
+# 2024 - Veer Pareek
+
 import torch
 from typing import Tuple, List
 
@@ -23,6 +26,7 @@ def compute_ucb_score(node: NodeStats, child: NodeStats, min_max_stats: MinMaxSt
 
 def add_dirichlet_noise(policy: torch.Tensor, alpha: float = 0.3, noise_fraction: float = 0.25) -> torch.Tensor:
     noise = torch.distributions.Dirichlet(torch.Tensor([alpha] * len(policy))).sample()
+
     return policy * (1 - noise_fraction) + noise * noise_fraction
 
 def select_action(node: NodeStats, min_max_stats: MinMaxStats, config: MCTSConfig) -> Tuple[int, List[NodeStats]]:
@@ -46,7 +50,7 @@ def select_action(node: NodeStats, min_max_stats: MinMaxStats, config: MCTSConfi
 
     if len(node.children_stats) == 0:
         return 0, search_path
-    return best_action, search_path
+    return best_action, search_path # type: ignore
 
 def expand(node: NodeStats, state: torch.Tensor, reward: torch.Tensor, policy_logits: torch.Tensor, value: torch.Tensor) -> None:
     node.state = state

@@ -1,5 +1,9 @@
+# Transformer Encoder
+# 2024 - Veer Pareek
+
 import math
 import torch
+
 from typing import Tuple, Optional, List
 
 from config import ModelParams, LayerWeights, TransformerWeights

@@ -1,3 +1,6 @@
+# MuZero Reinforcement Learning Algorithm
+# 2024 - Veer Pareek
+
 import torch
 from typing import Tuple, Dict, Optional, List
 
