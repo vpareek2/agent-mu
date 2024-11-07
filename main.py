@@ -4,9 +4,7 @@ import pickle
 import torch
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
-
-from torchvision.ops.misc import Tuple
+from typing import Dict, Optional, Tuple
 
 from config import (FeatureConfig, ModelParams, MuZeroConfig, MCTSConfig, EnvironmentConfig, ReplayBufferConfig, TrainingConfig, DynamicsWeights, PredictionWeights, LayerWeights, MuZeroWeights, TransformerWeights)
 from data import pipeline
