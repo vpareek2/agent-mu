@@ -169,18 +169,15 @@ def train(env: Environment, muzero_weights: MuZeroWeights, encoder_weights: Tran
             )
 
         if step % train_config.checkpoint_interval == 0:
-            # Evaluate model
             eval_metrics = evaluate_model(
                 env, muzero_weights, encoder_weights,
                 model_params, muzero_config, mcts_config
             )
 
-            # Determine if this is the best model
             is_best = eval_metrics["avg_portfolio_value"] > best_portfolio_value
             if is_best:
                 best_portfolio_value = eval_metrics["avg_portfolio_value"]
 
-            # Save checkpoint
             save_checkpoint(
                 muzero_weights=muzero_weights,
                 encoder_weights=encoder_weights,

@@ -234,11 +234,11 @@ class FeatureConfig:
     timeframe: str = "1d"
 
     reddit_credentials: Dict[str, str] = field(default_factory=lambda: {
-        'client_id': '',
-        'client_secret': '',
-        'user_agent': ''
+        'client_id': 'jOPlAtel1Z6Ndm5gQPaE8g',
+        'client_secret': 'VLk8nhZs6OBTAm_29iLlf6XKp26p5w',
+        'user_agent': '"Muzerotrader/1.0 by /u/Interesting-Iron8269"'
     })
-    newsapi_key: str = ''
+    newsapi_key: str = 'a26bd92479c44f9e94fa13953ef29b9c'
 
 
     # Price Features
