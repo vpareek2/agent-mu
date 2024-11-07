@@ -149,7 +149,7 @@ def calculate_sentiment_features(dates: pd.DatetimeIndex, symbol: str, reddit_cr
 # ---------------------------------------------------------------------------
 
 def pipeline(symbol: str, start_date: str, end_date: Optional[str] = None, config: Optional[FeatureConfig] = None, reddit_credentials: Optional[Dict[str, str]] = None, newsapi_key: Optional[str] = None) -> MarketFeatures:
-    config = FeatureConfig() if config is None
+    config = FeatureConfig()
     df = yf.Ticker(symbol).history(start=start_date, end=end_date or datetime.now().strftime('%Y-%m-%d'), interval="1d")
     ohlcv = calculate_ohlcv(df)
     returns = calculate_returns(df, config.use_log_returns)
