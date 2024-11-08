@@ -25,7 +25,11 @@ def fetch_market_data(symbol: str, start_date: str, end_date: Optional[str] = No
 
 def fetch_news_data(date: datetime, symbol: str, newsapi_key: str) -> List[str]:
     date_str = date.strftime('%Y-%m-%d')
-    url = ('https://newsapi.org/v2/everything?'f'q={symbol}&'f'from={date_str}&'f'to={date_str}&''language=en&''sortBy=popularity&'f'apiKey={newsapi_key}')
+    url = (
+        f'https://newsapi.org/v2/everything?q={symbol}&'
+        f'from={date_str}&to={date_str}&'
+        f'language=en&sortBy=popularity&apiKey={newsapi_key}'
+    )
     response = requests.get(url)
     if response.status_code == 200:
         articles = response.json().get('articles', [])
