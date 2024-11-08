@@ -8,7 +8,7 @@ from config import MCTSConfig, ModelParams, MuZeroConfig, MuZeroWeights, NodeSta
 from muzero import initial_inference, recurrent_inference
 
 def get_action_policy(root: NodeStats, temperature: float = 1.0) -> ActionStats:
-    visits = torch.Tensor([root.children_stats[action].visit_count if action in root.childeren_stats else 0 for action in range(3)])
+    visits = torch.Tensor([root.children_stats[action].visit_count if action in root.children_stats else 0 for action in range(3)])
     if temperature == 0:
         action_probs = torch.zeros_like(visits, dtype=torch.float).index_fill_(0, torch.argmax(visits).unsqueeze(0), 1.0)
     else:
