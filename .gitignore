@@ -4,3 +4,4 @@ optimizers
 __pycache__
 .ds_Store
 config.py
+plan-distributed.txt
