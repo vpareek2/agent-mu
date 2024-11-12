@@ -8,13 +8,14 @@ from config import DynamicsWeights, PredictionWeights, MuZeroConfig, MuZeroWeigh
 from encoder import rms_norm, encoder
 
 def dynamics_network(state: torch.Tensor, action: torch.Tensor, weights: DynamicsWeights, config: MuZeroConfig) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Dynamics network with shared computation."""
     x = torch.cat([state, action], dim=-1)
     state_hidden = torch.nn.functional.relu(torch.nn.functional.linear(x, weights.state_net_1))
     state_hidden = rms_norm(state_hidden, weights.norm_1)
+
     next_state = torch.nn.functional.linear(state_hidden, weights.state_net_2)
     next_state = rms_norm(next_state, weights.norm_2)
-    reward_hidden = torch.nn.functional.relu(torch.nn.functional.linear(x, weights.state_net_1))
-    reward = torch.nn.functional.linear(reward_hidden, weights.reward_net_2)
+    reward = torch.nn.functional.linear(state_hidden, weights.reward_net_2)
 
     return next_state, reward
 
