@@ -12,14 +12,8 @@ class BufferStats:
     global_priorities_sum: float
     local_priorities_sum: float
 
-class DistributedReplayBuffer:
-    def __init__(
-        self,
-        config: ReplayBufferConfig,
-        rank: int,
-        world_size: int,
-        device: torch.device
-    ):
+class ReplayBuffer:
+    def __init__(self, config: ReplayBufferConfig, rank: int, world_size: int, device: torch.device):
         self.config = config
         self.rank = rank
         self.world_size = world_size
@@ -47,7 +41,6 @@ class DistributedReplayBuffer:
         self.priority_stream = torch.cuda.Stream(device=device)
 
     def _get_global_stats(self) -> BufferStats:
-        """Gather global buffer statistics efficiently."""
         local_size = torch.tensor([len(self.buffer)], device=self.device)
         global_size = torch.zeros_like(local_size)
         torch.distributed.all_reduce(local_size, op=torch.distributed.ReduceOp.SUM)
@@ -67,7 +60,6 @@ class DistributedReplayBuffer:
         )
 
     def store_game(self, game: GameHistory) -> None:
-        """Store game in local buffer shard."""
         if len(self.buffer) < self.local_capacity:
             self.buffer.append(game)
             if self.priorities is not None:
@@ -81,7 +73,6 @@ class DistributedReplayBuffer:
         self.current_idx = (self.current_idx + 1) % self.local_capacity
 
     def _compute_sampling_probs(self) -> torch.Tensor:
-        """Compute sampling probabilities efficiently."""
         if not self.config.prioritized or self.priorities is None:
             return torch.ones(self.size, device=self.device) / self.size
 
@@ -133,7 +124,6 @@ class DistributedReplayBuffer:
         return games, weights, indices.tolist()
 
     def update_priorities(self, indices: List[int], priorities: List[float]) -> None:
-        """Update priorities with async operations."""
         if not self.config.prioritized or self.priorities is None:
             return
 
@@ -156,7 +146,6 @@ class DistributedReplayBuffer:
             self.priority_sync_event.record(stream)
 
     def synchronize(self) -> None:
-        """Synchronize async operations."""
         if self.config.prioritized:
             self.priority_sync_event.synchronize()
 
