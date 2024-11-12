@@ -1,3 +1,3 @@
 # agent-mu
 
-Muzero trading agent, distributed implementation loading...
+Muzero trading agent, working on distributed implementation.
